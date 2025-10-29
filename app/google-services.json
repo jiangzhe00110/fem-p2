@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "729831453065",
+    "project_id": "femp2-a651d",
+    "storage_bucket": "femp2-a651d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:729831453065:android:165d40b496e09e6f7cf158",
+        "android_client_info": {
+          "package_name": "com.example.fem_p2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJbXarVuKhcokuYyjU6fSmdMpPPjVaf4w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
