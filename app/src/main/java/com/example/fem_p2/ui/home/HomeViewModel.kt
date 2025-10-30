@@ -9,8 +9,9 @@ import com.example.fem_p2.TravelPlannerApp
 import com.example.fem_p2.data.auth.AuthRepository
 import com.example.fem_p2.data.firestore.ItineraryRepository
 import com.example.fem_p2.data.firestore.model.TravelEntry
+import com.example.fem_p2.data.news.NewsRepository
 import com.example.fem_p2.data.weather.WeatherRepository
-import com.example.fem_p2.data.weather.model.WeatherSummary
+import com.example.fem_p2.data.weather.model.WeatherSnapshot
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,11 +20,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+
+private const val MAX_HISTORY_ENTRIES = 10
 
 class HomeViewModel(
     private val authRepository: AuthRepository,
     private val itineraryRepository: ItineraryRepository,
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val newsRepository: NewsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -41,7 +46,14 @@ class HomeViewModel(
                             isSignedIn = false,
                             itineraries = emptyList(),
                             userName = "",
-                            weatherSummary = null
+                            currentWeather = null,
+                            weatherError = null,
+                            isLoadingWeather = false,
+                            weatherHistory = emptyList(),
+                            isHistoryDialogVisible = false,
+                            newsHeadlines = emptyList(),
+                            newsError = null,
+                            isLoadingNews = false
                         )
                     }
                 } else {
@@ -52,7 +64,7 @@ class HomeViewModel(
                         )
                     }
                     observeItineraries(user.uid)
-                    refreshWeather()
+                    refreshDashboard()
                 }
             }
         }
@@ -73,20 +85,56 @@ class HomeViewModel(
         }
     }
 
-    fun refreshWeather() {
+    fun refreshDashboard() {
+        refreshWeather()
+        refreshNews()
+    }
+
+    private fun refreshWeather() {
         _uiState.update { it.copy(isLoadingWeather = true, weatherError = null) }
         viewModelScope.launch {
             val result = weatherRepository.fetchMadridSummary()
             result.onSuccess { summary ->
-                _uiState.update {
-                    it.copy(weatherSummary = summary, isLoadingWeather = false)
+                val snapshot = WeatherSnapshot(summary = summary, fetchedAt = Instant.now())
+                _uiState.update { current ->
+                    val updatedHistory = current.currentWeather?.let { previous ->
+                        listOf(previous) + current.weatherHistory
+                    } ?: current.weatherHistory
+
+                    current.copy(
+                        currentWeather = snapshot,
+                        isLoadingWeather = false,
+                        weatherHistory = updatedHistory.take(MAX_HISTORY_ENTRIES)
+                    )
                 }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
-                        weatherSummary = null,
                         weatherError = error.localizedMessage ?: "No se pudo obtener el clima",
                         isLoadingWeather = false
+                    )
+                }
+            }
+        }
+    }
+
+    private fun refreshNews() {
+        _uiState.update { it.copy(isLoadingNews = true, newsError = null) }
+        viewModelScope.launch {
+            val result = newsRepository.fetchMadridHeadlines()
+            result.onSuccess { headlines ->
+                _uiState.update {
+                    it.copy(
+                        newsHeadlines = headlines,
+                        isLoadingNews = false
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        newsHeadlines = emptyList(),
+                        newsError = error.localizedMessage ?: "No se pudieron obtener las noticias",
+                        isLoadingNews = false
                     )
                 }
             }
@@ -103,6 +151,10 @@ class HomeViewModel(
 
     fun toggleDialog(show: Boolean) {
         _uiState.update { it.copy(isDialogVisible = show, errorMessage = null) }
+    }
+
+    fun toggleWeatherHistory(show: Boolean) {
+        _uiState.update { it.copy(isHistoryDialogVisible = show) }
     }
 
     fun saveEntry() {
@@ -126,7 +178,7 @@ class HomeViewModel(
                         isSaving = false,
                         isDialogVisible = false,
                         newEntryTitle = "",
-                        newEntryDescription = ""
+                        newEntryDescription = "",
                     )
                 }
             }.onFailure { error ->
@@ -155,7 +207,8 @@ class HomeViewModel(
                 HomeViewModel(
                     authRepository = app.appContainer.authRepository,
                     itineraryRepository = app.appContainer.itineraryRepository,
-                    weatherRepository = app.appContainer.weatherRepository
+                    weatherRepository = app.appContainer.weatherRepository,
+                    newsRepository = app.appContainer.newsRepository
                 )
             }
         }
@@ -165,9 +218,14 @@ class HomeViewModel(
 data class HomeUiState(
     val isSignedIn: Boolean = false,
     val userName: String = "",
-    val weatherSummary: WeatherSummary? = null,
+    val currentWeather: WeatherSnapshot? = null,
     val weatherError: String? = null,
     val isLoadingWeather: Boolean = false,
+    val weatherHistory: List<WeatherSnapshot> = emptyList(),
+    val isHistoryDialogVisible: Boolean = false,
+    val newsHeadlines: List<String> = emptyList(),
+    val newsError: String? = null,
+    val isLoadingNews: Boolean = false,
     val itineraries: List<TravelEntry> = emptyList(),
     val isDialogVisible: Boolean = false,
     val newEntryTitle: String = "",

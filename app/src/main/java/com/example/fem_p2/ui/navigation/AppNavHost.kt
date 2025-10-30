@@ -45,7 +45,7 @@ fun TravelPlannerNavHost() {
         composable(Destinations.HOME) {
             HomeScreen(
                 state = homeState,
-                onRefreshWeather = homeViewModel::refreshWeather,
+                onRefreshDashboard = homeViewModel::refreshDashboard,
                 onSignOut = {
                     homeViewModel.signOut()
                     navController.navigate(Destinations.AUTH) {
@@ -53,6 +53,7 @@ fun TravelPlannerNavHost() {
                         launchSingleTop = true
                     }
                 },
+                onToggleHistory = homeViewModel::toggleWeatherHistory,
                 onShowDialog = homeViewModel::toggleDialog,
                 onTitleChange = homeViewModel::updateNewTitle,
                 onDescriptionChange = homeViewModel::updateNewDescription,

@@ -80,6 +80,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("org.jsoup:jsoup:1.17.2")
 
     implementation("com.squareup.moshi:moshi:1.15.1")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")

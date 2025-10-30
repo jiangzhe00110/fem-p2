@@ -7,6 +7,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.SetOptions
 
 class FirestoreItineraryRepository(
     private val firestore: FirebaseFirestore
@@ -34,12 +35,23 @@ class FirestoreItineraryRepository(
     }
 
     override suspend fun addEntry(userId: String, entry: TravelEntry): Result<Unit> = runCatching {
-        firestore
+        val userDocument = firestore
             .collection(USERS_COLLECTION)
             .document(userId)
-            .collection(ITINERARIES_COLLECTION)
-            .add(entry)
+        userDocument
+            .set(mapOf(OWNER_FIELD to userId), SetOptions.merge())
             .await()
+
+        val itineraryCollection = userDocument.collection(ITINERARIES_COLLECTION)
+        val newDocument = itineraryCollection.document()
+
+        val payload = entry.copy(
+            id = newDocument.id,
+            ownerId = userId
+        )
+
+        newDocument
+            .set(payload)
         Unit
     }
 
@@ -47,5 +59,7 @@ class FirestoreItineraryRepository(
         const val USERS_COLLECTION = "users"
         const val ITINERARIES_COLLECTION = "itineraries"
         const val TIMESTAMP_FIELD = "timestamp"
+        const val OWNER_FIELD = "ownerId"
+
     }
 }

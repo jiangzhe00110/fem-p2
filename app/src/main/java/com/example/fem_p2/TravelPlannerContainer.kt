@@ -16,6 +16,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import com.example.fem_p2.data.firestore.FirestoreItineraryRepository
 //import com.example.fem_p2.data.firestore.ItineraryRepository
+import com.example.fem_p2.data.news.NewsRepository
 
 class TravelPlannerContainer {
 
@@ -41,6 +42,7 @@ class TravelPlannerContainer {
 
     val weatherRepository: WeatherRepository = WeatherRepository(weatherService)
 
+    val newsRepository: NewsRepository = NewsRepository(okHttpClient)
     private val firebaseAuth = Firebase.auth
     private val firestore = Firebase.firestore
 
